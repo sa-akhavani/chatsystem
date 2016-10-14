@@ -12,16 +12,34 @@
 #include <signal.h>
 #include <stdbool.h>
 
-#define SERVERPORT 4000    // the port users will be connecting to
+// #define SERVERPORT 4000    // the port users will be connecting to
+#define HEARTBEATMESSAGE "i am alive"
 
 volatile sig_atomic_t beat = false;
 
-void heartbeat( int sig ) {
+void heartbeat( int sig )
+{
     beat = true;
+}
+
+bool checkInput(int argc, char *argv[])
+{
+    if (argc != 5) {
+        return false;
+    }
+    if (strcmp(argv[1], "--server-broadcasts-to") != 0) {
+        return false;
+    }
+    if (strcmp(argv[3], "--clients-broadcasts-to") != 0) {
+        return false;
+    }
+    return true;
 }
 
 int main(int argc, char *argv[])
 {
+    int server_port, clients_port;
+
     int sockfd;
     struct sockaddr_in their_addr; // connector's address information
     struct hostent *he;
@@ -29,12 +47,15 @@ int main(int argc, char *argv[])
     int broadcast = 1;
     //char broadcast = '1'; // if that doesn't work, try this
 
-    if (argc != 3) {
-        fprintf(stderr,"usage: broadcaster hostname message\n");
-        exit(1);
+    if (!checkInput(argc, argv)) {
+        fprintf(stderr,"usage: server --server-broadcasts-to \"PORT M\" --clients-broadcasts-to \"PORT N\"\n");
+        exit(1);       
     }
 
-    if ((he=gethostbyname(argv[1])) == NULL) {  // get the host info
+    server_port = atoi(argv[2]);
+    clients_port = atoi(argv[4]);
+
+    if ((he=gethostbyname("localhost")) == NULL) {  // get the host info
         perror("gethostbyname");
         exit(1);
     }
@@ -52,17 +73,19 @@ int main(int argc, char *argv[])
     }
 
     their_addr.sin_family = AF_INET;     // host byte order
-    their_addr.sin_port = htons(SERVERPORT); // short, network byte order
+    their_addr.sin_port = htons(server_port); // short, network byte order
     their_addr.sin_addr = *((struct in_addr *)he->h_addr);
     memset(their_addr.sin_zero, '\0', sizeof their_addr.sin_zero);
 
 
+    printf("started sending heartbeats\n");
+    
+    // Sending heartbeats every 1 seconds
     signal(SIGALRM, heartbeat);
     alarm(1);
-    
     while(1) {
         if (beat) {
-            if ((numbytes=sendto(sockfd, argv[2], strlen(argv[2]), 0,
+            if ((numbytes=sendto(sockfd, HEARTBEATMESSAGE, strlen(HEARTBEATMESSAGE), 0,
                      (struct sockaddr *)&their_addr, sizeof their_addr)) == -1) {
                 perror("sendto");
                 exit(1);
