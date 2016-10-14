@@ -38,7 +38,7 @@ bool checkInput(int argc, char *argv[])
 
 int main(int argc, char *argv[])
 {
-    int server_port, clients_port;
+    int server_broadcast_port, clients_broadcast_port;
 
     int sockfd;
     struct sockaddr_in their_addr; // connector's address information
@@ -52,8 +52,8 @@ int main(int argc, char *argv[])
         exit(1);       
     }
 
-    server_port = atoi(argv[2]);
-    clients_port = atoi(argv[4]);
+    server_broadcast_port = atoi(argv[2]);
+    clients_broadcast_port = atoi(argv[4]);
 
     if ((he=gethostbyname("localhost")) == NULL) {  // get the host info
         perror("gethostbyname");
@@ -73,7 +73,7 @@ int main(int argc, char *argv[])
     }
 
     their_addr.sin_family = AF_INET;     // host byte order
-    their_addr.sin_port = htons(server_port); // short, network byte order
+    their_addr.sin_port = htons(server_broadcast_port); // short, network byte order
     their_addr.sin_addr = *((struct in_addr *)he->h_addr);
     memset(their_addr.sin_zero, '\0', sizeof their_addr.sin_zero);
 
