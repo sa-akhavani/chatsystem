@@ -12,14 +12,20 @@
 #include <signal.h>
 #include <stdbool.h>
 
-// #define SERVERPORT 4000    // the port users will be connecting to
 #define HEARTBEATMESSAGE "i am alive"
 
-volatile sig_atomic_t beat = false;
+struct sockaddr_in their_addr; // connector's address information
+int sockfd;
 
-void heartbeat( int sig )
+void heartbeat()
 {
-    beat = true;
+    int numbytes;
+    if ((numbytes=sendto(sockfd, HEARTBEATMESSAGE, strlen(HEARTBEATMESSAGE), 0,
+             (struct sockaddr *)&their_addr, sizeof their_addr)) == -1) {
+        perror("sendto");
+        exit(1);
+    }
+    alarm(1);
 }
 
 bool checkInput(int argc, char *argv[])
@@ -39,9 +45,6 @@ bool checkInput(int argc, char *argv[])
 int main(int argc, char *argv[])
 {
     int server_broadcast_port, clients_broadcast_port;
-
-    int sockfd;
-    struct sockaddr_in their_addr; // connector's address information
     struct hostent *he;
     int numbytes;
     int broadcast = 1;
@@ -84,15 +87,6 @@ int main(int argc, char *argv[])
     signal(SIGALRM, heartbeat);
     alarm(1);
     while(1) {
-        if (beat) {
-            if ((numbytes=sendto(sockfd, HEARTBEATMESSAGE, strlen(HEARTBEATMESSAGE), 0,
-                     (struct sockaddr *)&their_addr, sizeof their_addr)) == -1) {
-                perror("sendto");
-                exit(1);
-            }
-            beat = false;
-            alarm(1);
-        }
     }
 
 

@@ -3,21 +3,17 @@
 #include <stdbool.h>
 #include <unistd.h>
 
-volatile sig_atomic_t print_flag = false;
+// volatile sig_atomic_t print_flag = false;
 
-void handle_alarm( int sig ) {
-    print_flag = true;
+void handle_alarm() {
+    printf( "Hello\n" );
+    alarm(1);
 }
 
 int main() {
-    signal( SIGALRM, handle_alarm ); // Install handler first,
-    // alarm( 1 ); // before scheduling it to be called.
+    signal(SIGALRM, handle_alarm);
+    alarm(1);
 
-    while {
-        if ( print_flag ) {
-            printf( "Hello\n" );
-            print_flag = false;
-            alarm( 1 );
-        }
+    while(1) {
     }
 }
