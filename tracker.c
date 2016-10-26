@@ -123,7 +123,7 @@ int heartbeat(struct addrinfo *hints, char* server_broadcast_port)
 		return 2;
 	}
 
-	freeaddrinfo(udp_servinfo);
+	
 
 	// Sending heartbeats every 1 seconds
 	signal(SIGALRM, handle_heartbeat);
@@ -203,7 +203,7 @@ int main(int argc, char *argv[])
     if ((rv = getaddrinfo(NULL, TRACKERLISTENINGPORT, &tcp_hints, &tcp_ai)) != 0) {
         fprintf(stderr, "selectserver: %s\n", gai_strerror(rv));
         exit(1);
-    }	
+    }
 
     for(tcp_p = tcp_ai; tcp_p != NULL; tcp_p = tcp_p->ai_next) {
         if (listener = socket(tcp_p->ai_family, tcp_p->ai_socktype, tcp_p->ai_protocol) < 0) {
@@ -227,14 +227,15 @@ int main(int argc, char *argv[])
     }
 
     freeaddrinfo(tcp_ai); // all done with this
+	freeaddrinfo(udp_servinfo);
 
-    // listen
+    // // listen
     if (listen(listener, 10) == -1) {
         perror("listen");
         exit(3);
     }
 
-    // add the listener to the master set
+    // // add the listener to the master set
     FD_SET(listener, &master);
 
     // keep track of the biggest file descriptor
@@ -242,9 +243,6 @@ int main(int argc, char *argv[])
     	fdmax = heartbeatfd;
     else 
     	fdmax = listener; // so far, it's this one
-
-
-
 
 
 	while (1) {
@@ -259,11 +257,12 @@ int main(int argc, char *argv[])
 		}
 
 
-		printf("%d\n", fdmax);
-
 		read_fds = master; // copy it
+        struct sigaction new_action, old_action;
+        sigaction (SIGALRM, NULL, &old_action);
+            		
 		if (select(fdmax+1, &read_fds, NULL, NULL, NULL) == -1) {
-			// perror("select");
+			perror("select");
 			// exit(4);
 			// printf("sag\n");
 			continue;

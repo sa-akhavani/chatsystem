@@ -85,14 +85,14 @@ int main(void)
     
     addr_len = sizeof their_addr;
     while(1) {
-        printf("%d\n", numbytes);
+        // printf("%d\n", numbytes);
         if ((numbytes = recvfrom(sockfd, buf, MAXBUFLEN-1 , 0,
             (struct sockaddr *)&their_addr, &addr_len)) == -1) {
             perror("recvfrom");
             exit(1);
         }
         
-        printf("%d\n", numbytes);
+        // printf("%d\n", numbytes);
         printf("listener: got packet from %s\n",
             inet_ntop(their_addr.ss_family,
                 get_in_addr((struct sockaddr *)&their_addr),

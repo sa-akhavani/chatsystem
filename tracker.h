@@ -16,11 +16,11 @@
 
 
 // Defenitions
-#define HEARTBEATMESSAGE "3993" // tells to the clients which port it is listening
-#define TRACKERLISTENINGPORT "3993" // which port it is listening
+#define HEARTBEATMESSAGE "6063" // tells to the clients which port it is listening
+#define TRACKERLISTENINGPORT "6063" // which port it is listening
 
 struct addrinfo *udp_servinfo, *udp_p;
-bool beat = false;
+volatile sig_atomic_t beat = false;
 
 
 // Users Linked List
