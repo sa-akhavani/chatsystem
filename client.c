@@ -1,17 +1,4 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <errno.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <netdb.h>
-
-#define MYPORT "4000"    // the port users will be connecting to
-
-#define MAXBUFLEN 100
+#include "client.h"
 
 // get sockaddr, IPv4 or IPv6:
 void *get_in_addr(struct sockaddr *sa)
@@ -21,6 +8,21 @@ void *get_in_addr(struct sockaddr *sa)
     }
 
     return &(((struct sockaddr_in6*)sa)->sin6_addr);
+}
+
+
+bool check_input(int argc, char *argv[])
+{
+    if (argc != 5) {
+        return false;
+    }
+    if (strcmp(argv[1], "--server-broadcasts-to") != 0) {
+        return false;
+    }
+    if (strcmp(argv[3], "--clients-broadcasts-to") != 0) {
+        return false;
+    }
+    return true;
 }
 
 int main(void)

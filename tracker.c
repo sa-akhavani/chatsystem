@@ -1,40 +1,10 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-
-#include <errno.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <netdb.h>
-#include <signal.h>
-#include <stdbool.h>
-
-// Defenitions
-#define HEARTBEATMESSAGE "3993"
-
-// Global Variables
-struct addrinfo *p;
-int sockfd;                     // socket file descriptor for server's heartbeat
-
-
-// Users Linked List
-struct user
-{
-   char             username[50];
-   char             ip[INET6_ADDRSTRLEN];
-   int              port;
-   struct user      *next;
-};
-
+#include "tracker.h"
 
 // Functions
 void heartbeat()
 {
     int numbytes;
-    if ((numbytes = sendto(sockfd, HEARTBEATMESSAGE, strlen(HEARTBEATMESSAGE), 0,
+    if ((numbytes = sendto(heartbeatfd, HEARTBEATMESSAGE, strlen(HEARTBEATMESSAGE), 0,
              p->ai_addr, p->ai_addrlen)) == -1) {
         perror("tracker: sendto");
         exit(1);
@@ -42,7 +12,7 @@ void heartbeat()
     alarm(1);
 }
 
-bool checkInput(int argc, char *argv[])
+bool check_input(int argc, char *argv[])
 {
     if (argc != 5) {
         return false;
@@ -57,21 +27,33 @@ bool checkInput(int argc, char *argv[])
 }
 
 
+void logout ()
+{
+
+}
+
+void login ()
+{
+    // current->next = malloc(sizeof(struct user));
+}
+
+
 int main(int argc, char *argv[])
 {
-    char* server_broadcast_port, clients_broadcast_port;
-    // int sockfd;
+    char* server_broadcast_port;
+    char* clients_broadcast_port;
+    // int heartbeatfd;
     struct addrinfo hints, *servinfo;
     int rv;
     int numbytes;
 
-    if (!checkInput(argc, argv)) {
+    if (!check_input(argc, argv)) {
         fprintf(stderr,"usage: server --server-broadcasts-to \"PORT M\" --clients-broadcasts-to \"PORT N\"\n");
         exit(1);       
     }
 
     server_broadcast_port = argv[2];
-    // clients_broadcast_port = argv[4];
+    clients_broadcast_port = argv[4];
 
 
     memset(&hints, 0, sizeof hints);
@@ -85,19 +67,20 @@ int main(int argc, char *argv[])
 
     // loop through all the results and make a socket
     for(p = servinfo; p != NULL; p = p->ai_next) {
-        if ((sockfd = socket(p->ai_family, p->ai_socktype,
+        if ((heartbeatfd = socket(p->ai_family, p->ai_socktype,
                 p->ai_protocol)) == -1) {
-            perror("talker: socket");
+            perror("tracker: socket");
             continue;
         }
         break;
     }
 
     if (p == NULL) {
-        fprintf(stderr, "talker: failed to create socket\n");
+        fprintf(stderr, "tracker: failed to create socket\n");
         return 2;
     }
 
+    freeaddrinfo(servinfo);
 
     // Sending heartbeats every 1 seconds
     signal(SIGALRM, heartbeat);
@@ -106,10 +89,10 @@ int main(int argc, char *argv[])
     while (1) {
     }
 
-    freeaddrinfo(servinfo);
 
-    printf("talker: sent %d bytes to %s\n", numbytes, argv[1]);
-    close(sockfd);
+
+    printf("tracker: sent %d bytes to %s\n", numbytes, argv[1]);
+    close(heartbeatfd);
 
     return 0;
 }
