@@ -52,6 +52,16 @@ int main(void)
             continue;
         }
 
+
+        int yes=1;
+
+        // lose the pesky "Address already in use" error message
+        if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof (int)) == -1) {
+            perror("setsockopt");
+            exit(1);
+        }
+
+
         if (bind(sockfd, p->ai_addr, p->ai_addrlen) == -1) {
             close(sockfd);
             perror("listener: bind");
@@ -60,6 +70,7 @@ int main(void)
 
         break;
     }
+
 
     if (p == NULL) {
         fprintf(stderr, "listener: failed to bind socket\n");

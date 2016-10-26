@@ -12,17 +12,31 @@
 #include <signal.h>
 #include <stdbool.h>
 
-#define HEARTBEATMESSAGE "i am alive"
+// Defenitions
+#define HEARTBEATMESSAGE "3993"
 
-struct sockaddr_in their_addr; // connector's address information
-int sockfd;
+// Global Variables
+struct addrinfo *p;
+int sockfd;                     // socket file descriptor for server's heartbeat
 
+
+// Users Linked List
+struct user
+{
+   char             username[50];
+   char             ip[INET6_ADDRSTRLEN];
+   int              port;
+   struct user      *next;
+};
+
+
+// Functions
 void heartbeat()
 {
     int numbytes;
-    if ((numbytes=sendto(sockfd, HEARTBEATMESSAGE, strlen(HEARTBEATMESSAGE), 0,
-             (struct sockaddr *)&their_addr, sizeof their_addr)) == -1) {
-        perror("sendto");
+    if ((numbytes = sendto(sockfd, HEARTBEATMESSAGE, strlen(HEARTBEATMESSAGE), 0,
+             p->ai_addr, p->ai_addrlen)) == -1) {
+        perror("tracker: sendto");
         exit(1);
     }
     alarm(1);
@@ -42,58 +56,59 @@ bool checkInput(int argc, char *argv[])
     return true;
 }
 
+
 int main(int argc, char *argv[])
 {
-    int server_broadcast_port, clients_broadcast_port;
-    struct hostent *he;
+    char* server_broadcast_port, clients_broadcast_port;
+    // int sockfd;
+    struct addrinfo hints, *servinfo;
+    int rv;
     int numbytes;
-    int broadcast = 1;
-    //char broadcast = '1'; // if that doesn't work, try this
 
     if (!checkInput(argc, argv)) {
         fprintf(stderr,"usage: server --server-broadcasts-to \"PORT M\" --clients-broadcasts-to \"PORT N\"\n");
         exit(1);       
     }
 
-    server_broadcast_port = atoi(argv[2]);
-    clients_broadcast_port = atoi(argv[4]);
+    server_broadcast_port = argv[2];
+    // clients_broadcast_port = argv[4];
 
-    if ((he=gethostbyname("localhost")) == NULL) {  // get the host info
-        perror("gethostbyname");
-        exit(1);
+
+    memset(&hints, 0, sizeof hints);
+    hints.ai_family = AF_UNSPEC;
+    hints.ai_socktype = SOCK_DGRAM;
+
+    if ((rv = getaddrinfo("localhost", server_broadcast_port, &hints, &servinfo)) != 0) {
+        fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
+        return 1;
     }
 
-    if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) == -1) {
-        perror("socket");
-        exit(1);
+    // loop through all the results and make a socket
+    for(p = servinfo; p != NULL; p = p->ai_next) {
+        if ((sockfd = socket(p->ai_family, p->ai_socktype,
+                p->ai_protocol)) == -1) {
+            perror("talker: socket");
+            continue;
+        }
+        break;
     }
 
-    // this call is what allows broadcast packets to be sent:
-    if (setsockopt(sockfd, SOL_SOCKET, SO_BROADCAST, &broadcast,
-        sizeof broadcast) == -1) {
-        perror("setsockopt (SO_BROADCAST)");
-        exit(1);
+    if (p == NULL) {
+        fprintf(stderr, "talker: failed to create socket\n");
+        return 2;
     }
 
-    their_addr.sin_family = AF_INET;     // host byte order
-    their_addr.sin_port = htons(server_broadcast_port); // short, network byte order
-    their_addr.sin_addr = *((struct in_addr *)he->h_addr);
-    memset(their_addr.sin_zero, '\0', sizeof their_addr.sin_zero);
 
-
-    printf("started sending heartbeats\n");
-    
     // Sending heartbeats every 1 seconds
     signal(SIGALRM, heartbeat);
+    printf("Server started broadcasting\n");
     alarm(1);
-    while(1) {
+    while (1) {
     }
 
+    freeaddrinfo(servinfo);
 
-
-    printf("sent %d bytes to %s\n", numbytes,
-        inet_ntoa(their_addr.sin_addr));
-
+    printf("talker: sent %d bytes to %s\n", numbytes, argv[1]);
     close(sockfd);
 
     return 0;
