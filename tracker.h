@@ -20,15 +20,13 @@
 #define TRACKERLISTENINGPORT "6063" // which port it is listening
 
 struct addrinfo *udp_servinfo, *udp_p;
-volatile sig_atomic_t beat = false;
-
 
 // Users Linked List
 struct user
 {
-   char             username[50];
+   char*             username;
    char             ip[INET6_ADDRSTRLEN];
-   int              port;
+   char*              port;
    struct user      *next;
 };
 
@@ -37,6 +35,6 @@ struct user
 // Functions
 // int heartbeat(struct addrinfo *hints, char* server_broadcast_port)
 bool check_input(int argc, char *argv[]);
-void print_all(struct user * first);
+// void print_all(struct user * first);
 
 #endif

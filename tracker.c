@@ -1,66 +1,92 @@
 #include "tracker.h"
+#include "linkedlist.h"
+
+volatile sig_atomic_t beat = false;
 
 // Functions
-
-int handle_request(char * buffer, int size)	// output: login -> 1 | exit -> -1 | send message -> 0
+int handle_request(char * buffer, int size)	// output: login -> 1 | exit -> -1 | send message -> 0 | send_file -> 2
 {
-	// int idx = 0;
-	// int new_idx = 0;
+	printf("parsing input: %s", buffer);
+	char tmp[size];
+	int i = 0;
 
-	// char command[size];
-	// char username[size];
-	// char message[size];
+	for (i = 0; i < size; ++i)
+		tmp[i] = 0;
 
-	// while(buffer[idx] == ' ')
-	// 	idx++;
-	// while(buffer[idx] != ' ') {
-	// 	command[new_idx] = buffer[idx];
-	// 	idx++;
-	// 	new_idx++;
-	// }
-	// command[new_idx] = '\0';
-	
-	// if (strcmp(command, "exit") == 0)
-	// 	return -1;
+	for (i = 0; i < size - 1; ++i)
+		tmp[i] = buffer[i];
 
-	// while(buffer[idx] == ' ')
-	// 	idx++;
-	// new_idx = 0;
-	// while(buffer[idx] != ' ') {
-	// 	username[new_idx] = buffer[idx];
-	// 	idx++;
-	// 	new_idx++;
-	// }	
-	// username[new_idx] = '\0';
+	char* command;
+	char* token;
+	const char s[2] = " ";
 
-	// if (strcmp(command, "login") == 0) {
-	// 	// login();
-	// 	return 1;
-	// }
+	token = strtok(tmp, s);
+	command = token;
 
-	// while(buffer[idx] == ' ')
-	// 	idx++;
-	// new_idx = 0;
-	// while(buffer[idx] != ' ') {
-	// 	message[new_idx] = buffer[idx];
-	// 	idx++;
-	// 	new_idx++;
-	// }	
-	// message[new_idx] = '\0';
 
-	// if (strcmp(message, "send") == 0) {
-	// 	// send_message();
-	// 	return 1;
-	// }
+	if(strcmp(command, "login") == 0) {
+		return 1;
+	} else if(strcmp(command, "exit") == 0) {
+		return -1;
+	} else if(strcmp(command, "send") == 0) {
+		return 0;
+	} else if(strcmp(command, "send_file") == 0) {
+		return 2;
+	}
+
 
 	return 10;
 }
 
-
-void handle_heartbeat()
+void login (struct user * users_head, char* buffer, int size)
 {
-	beat = true;
-	printf("beated :D\n");
+	char tmp[size];
+	int i = 0;
+
+	for (i = 0; i < size; ++i)
+		tmp[i] = 0;
+
+	for (i = 0; i < size - 1; ++i)
+		tmp[i] = buffer[i];
+
+	char* command;
+	char* username;
+	char* ip;
+	char* port;
+
+	int idx = 0;
+	char* token;
+	const char s[2] = " ";
+
+
+	token = strtok(tmp, s);
+	command = token;
+	idx++;
+
+	while(token != NULL) {
+		token = strtok(NULL, s);		
+		if (idx == 1)
+			username = token;
+		if (idx == 2)
+			ip = token;
+		if (idx == 3)
+			port = token;					
+		idx++;
+	}
+
+	printf("%s\t", username);
+	printf("logged in :)\n");
+
+
+	add_user(users_head, username, ip, port);
+
+	// debug
+	// print_all(users_head);
+
+}
+
+void logout ()
+{
 }
 
 bool check_input(int argc, char *argv[])
@@ -87,16 +113,12 @@ void *get_in_addr(struct sockaddr *sa)
 	return &(((struct sockaddr_in6*)sa)->sin6_addr);
 }
 
-void logout ()
+
+void handle_heartbeat()
 {
-
+	beat = true;
+	// printf("beated :D\n");
 }
-
-void login ()
-{
-	// current->next = malloc(sizeof(struct user));
-}
-
 
 int heartbeat(struct addrinfo *hints, char* server_broadcast_port)
 {
@@ -159,7 +181,7 @@ int main(int argc, char *argv[])
 
 	// others
 	int numbytes_hearbeat;
-	char buf[256];                       // buffer for client data
+	// char buf[256];                       // buffer for client data
 	int nbytes;
 	char remoteIP[INET6_ADDRSTRLEN];
 
@@ -190,8 +212,8 @@ int main(int argc, char *argv[])
 	FD_ZERO(&read_fds);
 
 
-	// Create Users Linked List
-	struct user * users = (struct user *) malloc(sizeof (struct user));
+	// Create users_head Linked List
+	struct user * users_head = (struct user *) malloc(sizeof (struct user));
 
 
 	// Create Heartbeat Socket
@@ -262,7 +284,7 @@ int main(int argc, char *argv[])
         sigaction (SIGALRM, NULL, &old_action);
             		
 		if (select(fdmax+1, &read_fds, NULL, NULL, NULL) == -1) {
-			perror("select");
+			// perror("select");
 			// exit(4);
 			// printf("sag\n");
 			continue;
@@ -293,6 +315,7 @@ int main(int argc, char *argv[])
 							newfd);
 					}
 				} else {
+					char buf[256];
 					// handle data from a client
 					if ((nbytes = recv(i, buf, sizeof buf, 0)) <= 0) {
 						// got error or connection closed by client
@@ -307,27 +330,28 @@ int main(int argc, char *argv[])
 					} else {
 						// we got some data from a client
 						buf[nbytes] = '\0';
-						printf("%s\n", buf);
-						// write(0, buf, nbytes);
-						// req_type = handle_request(buf, nbytes);
-						// if (req_type == 1) {
-						// 	// login
-						// 	login(users, buf, nbytes);
-						// } else if (req_type == -1) {
-						// 	// Exit
-						// 	logout(users, buf, nbytes);
-						// } else if (req_type == 0){
-						// 	// Sed Message
-						// } else {
-						// 	// Bad input
-						// 	printf("bad input\n");
-						// 	continue;
-						// }
+						req_type = handle_request(buf, nbytes);
+						if (req_type == 1) {
+							// login
+							login(users_head, buf, nbytes);
+						} else if (req_type == -1) {
+							// Exit
+							// logout(users_head, buf, nbytes);
+						} else if (req_type == 0){
+							// Sed Message
+						} else {
+							// Bad input
+							printf("bad input\n");
+							// continue;
+						}
 					}
 				}
 			}
 		}
 	}	// End of While 1
+
+
+	clear_all(users_head);
 
 	printf("tracker: sent %d bytes to %s\n", numbytes_hearbeat, argv[1]);
 	close(heartbeatfd);

@@ -1,34 +1,22 @@
-//struct
-
-struct user {
-               char             ip[14];
-               int              port;
-               char             name[40];
-               struct user      *next;
-           };
-
-
-//allocation & initializing
-	  struct user * first_user = (struct user *) malloc(sizeof (struct user));
-    struct user * second_user = (struct user *) malloc(sizeof (struct user));
-    struct user * third_user = (struct user *) malloc(sizeof (struct user));
-    first_user->port = 11;
-    first_user->next = second_user;
-    second_user->port = 12;
-    second_user->next = third_user;
-    third_user->port = 13;
-    print_user_map(first_user);
-    free_user_map(first_user);
+#include "linkedlist.h"
 
 
 // linked List
 
 // Add User
-void add_user(struct user* head, struct user * new_user)
+void add_user(struct user* head, char* username, char* ip, char* port)
 {
+    struct user* new_user = (struct user *) malloc(sizeof (struct user));
+    new_user->username = username;
+    new_user->ip;
+    new_user->port;
+
+    // printf("uname: %s\n", new_user->username);
+
     struct user * current = head;
     while (current->next != NULL) {
         current = current->next;
+        // printf("current: %s\n", current->username);
     }
 
     current->next = new_user;
@@ -92,7 +80,7 @@ void print_all(struct user* head)
         return;
     printf("user: %s\n", head->username);
     printf("ip: %s\n", head->ip);
-    printf("port: %d\n", head->port);
+    printf("port: %s\n", head->port);
     if(head->next != NULL)
         print_all(head->next);
 }
